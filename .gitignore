@@ -1,0 +1,7 @@
+.DS_Store
+node_modules/
+.env
+# generated audio + chunk caches
+*.mp3
+*.wav
+*.chunks/
