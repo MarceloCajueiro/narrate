@@ -94,7 +94,7 @@ A few good voices for narration: `Sadachbia` (warm, professorial), `Kore` (calm)
 ## Install as a Claude Code skill
 
 ```
-/plugin marketplace add MarceloCajueiro/narrate
+/plugin marketplace add MarceloCajueiro/cajueiro-claude-plugins
 /plugin install narrate@cajueiro-plugins
 ```
 
