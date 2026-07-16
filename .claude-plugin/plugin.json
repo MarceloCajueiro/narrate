@@ -1,6 +1,6 @@
 {
   "name": "narrate",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Turn a document (PDF, Markdown, HTML, text) into a narrated audio file with Gemini TTS. Chunking, retry, resume, and loudness normalization built in.",
   "author": { "name": "Marcelo Cajueiro" },
   "homepage": "https://cajueiro.tech",

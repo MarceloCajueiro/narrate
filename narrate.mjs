@@ -6,7 +6,7 @@
 //
 // See `--help` for options, or the README for the full walkthrough.
 
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
 import { basename, extname, join, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -40,12 +40,15 @@ const HELP = `narrate — document -> narrated audio (Gemini TTS)
 
 Usage:
   node narrate.mjs <input> [options]
+  node narrate.mjs "some text to narrate" [options]
 
 Input:
-  A .pdf, .md, .txt, or .html file.
+  A path to a .pdf, .md, .txt, or .html file — or text typed directly.
+  If the argument isn't an existing file it's narrated as-is (also --text "…").
 
 Options:
-  --out <file>       Output MP3 (default: <input-basename>.mp3 in the cwd).
+  --text <text>      Narrate this text directly (overrides the positional input).
+  --out <file>       Output MP3 (default: <input-basename-or-text-slug>.mp3).
   --lang <language>  Narration language, e.g. "English", "pt-BR", "Spanish".
                      Default: auto (Gemini infers it from the text). Set this
                      when the text is short/ambiguous or to pin the accent.
@@ -64,7 +67,22 @@ Options:
 Examples:
   node narrate.mjs report.pdf --lang English
   node narrate.mjs chapter.md --lang pt-BR --voice Kore --out chapter.mp3
+  node narrate.mjs "Era uma vez um cara muito legal." --lang pt-BR
 `;
+
+// Filename-safe slug from the first few words of inline text.
+function slug(text) {
+  const s = text
+    .toLowerCase()
+    .normalize('NFD') // split accents off base letters; [^a-z0-9] then drops them
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .split('-')
+    .filter(Boolean)
+    .slice(0, 5)
+    .join('-');
+  return s || 'narration';
+}
 
 // Style header prepended (unspoken) to every chunk. Kept byte-identical across
 // chunks so the voice timbre stays consistent along a long document.
@@ -111,10 +129,30 @@ async function main() {
     process.exit(args.help ? 0 : 1);
   }
 
-  const input = resolve(args._[0]);
-  if (!existsSync(input)) throw new Error(`input not found: ${input}`);
+  // Input is a file path OR text typed directly. If the first argument is an
+  // existing file, read it; otherwise treat --text (or the words) as the text.
+  const firstArg = args._[0];
+  const asPath = firstArg ? resolve(firstArg) : null;
+  const isFile = asPath && existsSync(asPath) && statSync(asPath).isFile();
 
-  const out = resolve(args.out || `${basename(input, extname(input))}.mp3`);
+  let text;
+  let baseName;
+  if (typeof args.text === 'string') {
+    text = args.text;
+    baseName = slug(text);
+  } else if (isFile) {
+    console.log(`[narrate] extracting text from ${basename(asPath)}…`);
+    text = extractText(asPath);
+    baseName = basename(asPath, extname(asPath));
+  } else if (args._.length) {
+    text = args._.join(' ');
+    baseName = slug(text);
+  } else {
+    throw new Error('nothing to narrate — pass a file path or some text (or --text "…").');
+  }
+  if (!text.trim()) throw new Error('no text to narrate (input was empty).');
+
+  const out = resolve(args.out || `${baseName}.mp3`);
   const workdir = resolve(args.workdir || `${out}.chunks`);
   const voice = args.voice || DEFAULT_VOICE;
   const model = args.model || MODEL;
@@ -128,8 +166,6 @@ async function main() {
 
   const header = buildHeader({ lang: args.lang && String(args.lang), style: args.style && String(args.style) });
 
-  console.log(`[narrate] extracting text from ${basename(input)}…`);
-  const text = extractText(input);
   const chunks = chunkText(text);
   const totalChars = chunks.reduce((n, c) => n + c.length, 0);
   if (!chunks.length) throw new Error('no text extracted from input');

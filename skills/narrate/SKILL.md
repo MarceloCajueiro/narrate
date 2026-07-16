@@ -29,8 +29,8 @@ The script lives at the plugin root. Reference it with `${CLAUDE_PLUGIN_ROOT}`.
 
 ## Steps
 
-### 1. Get the input document
-The user provides a path to a `.pdf`, `.md`, `.txt`, or `.html` file.
+### 1. Get the input
+Either a path to a `.pdf`, `.md`, `.txt`, or `.html` file, **or text directly**. The tool auto-detects: if the argument is an existing file it's read; otherwise it's narrated as-is. So `narrate.mjs "Era uma vez…" --lang pt-BR` works with no file. For long/multi-line text, use `--text "…"` (or still write it to a file).
 
 ### 2. Decide the narration language
 Ask the user (or infer from the document) which **language** to narrate in, and pass it as `--lang` (e.g. `English`, `pt-BR`, `Spanish`). If the text is long and unambiguously in one language you may omit `--lang` and let Gemini auto-detect — but when in doubt, set it explicitly. This is the one setting worth confirming up front.
@@ -40,8 +40,9 @@ Default voice is `Sadachbia` (warm, professorial). Offer alternatives if the ton
 
 ### 4. Run it
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/narrate.mjs <input> --lang <language> [--voice <name>] [--out <file.mp3>]
+node ${CLAUDE_PLUGIN_ROOT}/narrate.mjs <input-or-text> --lang <language> [--voice <name>] [--out <file.mp3>]
 ```
+`<input-or-text>` is a file path or the text itself (auto-detected). When narrating inline text and no `--out` is given, the output filename is derived from the first words of the text.
 For a **long** document (tens of chunks), warn the user it can take a while and may hit the free-tier rate limit — if it stops with failures, just run the **same command again** to resume.
 
 ### 5. Deliver
@@ -49,6 +50,7 @@ Give the user the output MP3 path and its duration (printed at the end). Do not 
 
 ## Options (see `--help`)
 
+- `--text <text>` — narrate this text directly (instead of a file path).
 - `--lang <language>` — narration language (default: auto-detect).
 - `--voice <name>` — Gemini prebuilt voice (default: `Sadachbia`).
 - `--style <text>` — extra delivery direction, prepended unspoken.

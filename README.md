@@ -42,9 +42,13 @@ node narrate.mjs report.pdf --lang English
 
 # Markdown in Brazilian Portuguese, a specific voice and output path
 node narrate.mjs chapter.md --lang pt-BR --voice Kore --out chapter.mp3
+
+# Or narrate text directly — no file needed (auto-detected)
+node narrate.mjs "Era uma vez um cara muito legal." --lang pt-BR
 ```
 
-Output goes to `<input-basename>.mp3` unless you pass `--out`.
+Input is a **file path or the text itself** — if the argument isn't an existing file, it's
+narrated as-is. Output goes to `<input-basename>.mp3` (or a slug of the text) unless you pass `--out`.
 
 ---
 
