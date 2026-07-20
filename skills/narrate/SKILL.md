@@ -62,4 +62,4 @@ Give the user the output MP3 path and its duration (printed at the end). Do not 
 
 - One self-contained MP3 out; no background music, no video.
 - Loudness normalized to −16 LUFS.
-- Chunk cache kept next to the output (`<out>.chunks/`) so re-runs resume. Mention it can be deleted to force a clean re-run.
+- Chunk cache kept next to the output (`<out>.chunks/`) so re-runs resume. Changing the voice, style, language, model or the text itself invalidates it and re-synthesizes; only the *same* command resumes. Mention it can be deleted to force a clean re-run.

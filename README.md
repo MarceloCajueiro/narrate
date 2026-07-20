@@ -86,7 +86,7 @@ A few good voices for narration: `Sadachbia` (warm, professorial), `Kore` (calm)
 
 - **Long documents cost time and quota.** A book-length PDF is dozens of TTS calls. On the free tier you may hit the daily/rate limit — the run stops with the failed chunk numbers; **run the same command again** to resume once quota is back (or enable billing).
 - **The chunk cache** lives at `<out>.chunks/`. Delete it to force a clean re-run.
-- **Voice consistency** relies on the fixed style header being byte-identical across chunks — don't vary `--style`/`--lang` between resumed runs of the same output.
+- **Voice consistency** relies on the fixed style header being byte-identical across chunks. Changing `--voice`/`--style`/`--lang`/`--model`, or editing the document, invalidates the cache and re-synthesizes from scratch — so a resumed run never mixes two voices. Re-running the *same* command resumes.
 - Content safety filters are disabled so long-form text (books, essays) isn't blocked mid-document. See `lib/tts.mjs` to change that.
 
 ---

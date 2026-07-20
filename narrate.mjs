@@ -6,8 +6,9 @@
 //
 // See `--help` for options, or the README for the full walkthrough.
 
-import { existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { basename, extname, join, resolve } from 'node:path';
+import { createHash } from 'node:crypto';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
@@ -22,18 +23,31 @@ const DEFAULT_LOUDNESS = -16; // LUFS — spoken-word/podcast standard
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+const BOOLEAN_FLAGS = new Set(['help']);
+
 function parseArgs(argv) {
   const args = { _: [] };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a.startsWith('--')) {
       const key = a.slice(2);
+      // Boolean flags never consume the next token — otherwise `--help file.pdf`
+      // would swallow the input.
+      if (BOOLEAN_FLAGS.has(key)) { args[key] = true; continue; }
       const next = argv[i + 1];
-      if (next === undefined || next.startsWith('--')) args[key] = true;
-      else { args[key] = next; i++; }
+      if (next === undefined || next.startsWith('--')) throw new Error(`--${key} needs a value`);
+      args[key] = next;
+      i++;
     } else args._.push(a);
   }
   return args;
+}
+
+function number(value, fallback, name) {
+  if (value === undefined) return fallback;
+  const n = Number(value);
+  if (!Number.isFinite(n)) throw new Error(`--${name} must be a number (got "${value}")`);
+  return n;
 }
 
 const HELP = `narrate — document -> narrated audio (Gemini TTS)
@@ -156,8 +170,8 @@ async function main() {
   const workdir = resolve(args.workdir || `${out}.chunks`);
   const voice = args.voice || DEFAULT_VOICE;
   const model = args.model || MODEL;
-  const loudness = Number(args.loudness ?? DEFAULT_LOUDNESS);
-  const concurrency = Math.max(1, Number(args.concurrency ?? 2));
+  const loudness = number(args.loudness, DEFAULT_LOUDNESS, 'loudness');
+  const concurrency = Math.max(1, number(args.concurrency, 2, 'concurrency'));
   const keyVar = args.key || 'GEMINI_API_KEY';
   const maxRetries = 5;
 
@@ -171,6 +185,24 @@ async function main() {
   if (!chunks.length) throw new Error('no text extracted from input');
   console.log(`[narrate] ${chunks.length} chunks, ${totalChars} chars. voice=${voice}, model=${model}`);
   mkdirSync(workdir, { recursive: true });
+
+  // The chunk cache is indexed by position, so anything that changes how a
+  // chunk should sound invalidates it: the voice, the model, the style header,
+  // and the text itself. Same signature -> resume; different -> start clean,
+  // otherwise an edited document or a new voice comes back half stale.
+  const signature = createHash('sha1')
+    .update([voice, model, header, ...chunks].join('\n'))
+    .digest('hex');
+  const sigPath = join(workdir, 'run.json');
+  let prev = null;
+  try { prev = JSON.parse(readFileSync(sigPath, 'utf8')).signature; } catch { /* absent or corrupt */ }
+  if (prev !== signature) {
+    if (prev) console.log('[narrate] voice/text/style changed — discarding the old chunk cache.');
+    for (const f of readdirSync(workdir)) {
+      if (/\.wav(\.tmp)?$/.test(f)) rmSync(join(workdir, f));
+    }
+    writeFileSync(sigPath, JSON.stringify({ signature, voice, model }));
+  }
 
   const t0 = Date.now();
   const failures = [];
@@ -191,7 +223,11 @@ async function main() {
         return wav;
       } catch (e) {
         console.log(`[narrate] chunk ${n} attempt ${attempt} failed: ${e.message.slice(0, 120)}`);
-        await sleep(3000 * attempt); // backoff (also eases transient 429s)
+        if (e.fatal) {
+          console.log(`[narrate] chunk ${n}: not retrying (the request itself is rejected).`);
+          break;
+        }
+        if (attempt < maxRetries) await sleep(3000 * attempt); // backoff (also eases transient 429s)
       }
     }
     failures.push(n);
