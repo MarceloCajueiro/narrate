@@ -25,7 +25,7 @@ concatenation → loudness normalization.
 - `pdftotext` (`brew install poppler`) — only needed for PDF input.
 - A **Gemini API key** in `GEMINI_API_KEY` (environment or `~/.env`). Get one at https://aistudio.google.com/apikey.
 
-The script lives at the plugin root. Reference it with `${CLAUDE_PLUGIN_ROOT}`.
+The script ships inside this skill, next to this file. Run it with the path of the directory this SKILL.md was loaded from - that path is already known and always correct.
 
 ## Steps
 
@@ -40,7 +40,8 @@ Default voice is `Sadachbia` (warm, professorial). Offer alternatives if the ton
 
 ### 4. Run it
 ```bash
-node ${CLAUDE_PLUGIN_ROOT}/narrate.mjs <input-or-text> --lang <language> [--voice <name>] [--out <file.mp3>]
+# SKILL_DIR = the directory holding this SKILL.md, i.e. the one you just read
+node "$SKILL_DIR/narrate.mjs" <input-or-text> --lang <language> [--voice <name>] [--out <file.mp3>]
 ```
 `<input-or-text>` is a file path or the text itself (auto-detected). When narrating inline text and no `--out` is given, the output filename is derived from the first words of the text.
 For a **long** document (tens of chunks), warn the user it can take a while and may hit the free-tier rate limit — if it stops with failures, just run the **same command again** to resume.

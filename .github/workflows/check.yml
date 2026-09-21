@@ -1,0 +1,28 @@
+name: check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  skill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      # The skill is installed by copying skills/narrate/ into the harness, so the
+      # frontmatter has to satisfy the Agent Skills spec and the whole implementation
+      # has to live inside that directory.
+      - name: SKILL.md matches the Agent Skills spec
+        run: python3 scripts/check-skills.py
+
+      - name: Scripts parse
+        run: |
+          for f in skills/narrate/narrate.mjs skills/narrate/lib/*.mjs; do
+            node --check "$f"
+          done
+
+      - name: Implementation is inside the skill directory
+        run: test -f skills/narrate/narrate.mjs && test -d skills/narrate/lib
