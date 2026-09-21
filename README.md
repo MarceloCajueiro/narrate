@@ -12,7 +12,7 @@ chunk is cached, so if a run hits a rate limit you just run it again and it resu
 - ♻️ **Resumable** — per-chunk cache; re-run to pick up where it stopped
 - 🔊 **Loudness-normalized** to podcast level (−16 LUFS by default)
 - 📦 **Zero npm dependencies** — native `fetch` + the system `ffmpeg`/`pdftotext`
-- 🤖 Installable as a [Claude Code](https://docs.claude.com/en/docs/claude-code) skill
+- 🤖 **Installs as an Agent Skill** in any harness — Claude Code, pi, Codex, Cursor, Gemini CLI, ...
 
 ---
 
@@ -38,13 +38,13 @@ git clone https://github.com/MarceloCajueiro/narrate.git
 cd narrate
 
 # Narrate a PDF in English
-node narrate.mjs report.pdf --lang English
+node skills/narrate/narrate.mjs report.pdf --lang English
 
 # Markdown in Brazilian Portuguese, a specific voice and output path
-node narrate.mjs chapter.md --lang pt-BR --voice Kore --out chapter.mp3
+node skills/narrate/narrate.mjs chapter.md --lang pt-BR --voice Kore --out chapter.mp3
 
 # Or narrate text directly — no file needed (auto-detected)
-node narrate.mjs "Era uma vez um cara muito legal." --lang pt-BR
+node skills/narrate/narrate.mjs "Era uma vez um cara muito legal." --lang pt-BR
 ```
 
 Input is a **file path or the text itself** — if the argument isn't an existing file, it's
@@ -91,14 +91,15 @@ A few good voices for narration: `Sadachbia` (warm, professorial), `Kore` (calm)
 
 ---
 
-## Install as a Claude Code skill
+## Install as an Agent Skill
 
-```
-/plugin marketplace add MarceloCajueiro/claude-plugins
-/plugin install narrate@cajueiro-plugins
+```bash
+npx skills add MarceloCajueiro/narrate
 ```
 
-Then ask Claude to "narrate this PDF in English" and it will drive the tool.
+The [skills.sh](https://skills.sh) CLI asks which harness to install into — Claude Code, pi, Codex, Cursor, Gemini CLI and the rest. It copies the **whole skill directory**, so `narrate.mjs` and its `lib/` travel with it and there is nothing else to install. Then ask your agent to "narrate this PDF in English" and it drives the tool.
+
+The same script also runs standalone from a clone, as in the quick start above.
 
 ---
 
